@@ -27,6 +27,9 @@ Photo.createIfNotExist = function(photo, callback) {
     key: photo.title
   }, function(err, photos) {
     var exist;
+    if (err != null) {
+      return callback(err);
+    }
     log.debug(photo.title + " check if exist");
     if (photos.length > 0) {
       exist = photos[0];

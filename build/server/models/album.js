@@ -33,13 +33,16 @@ Album.createIfNotExist = function(album, callback) {
     key: album.title
   }, function(err, albums) {
     var exist;
+    if (err != null) {
+      return callback(err);
+    }
     log.debug(album.title + " check if exist");
     exist = _.find(albums, function(fetchedAlbum) {
       return album.description === fetchedAlbum.description;
     });
-    log.debug("exist ? " + exist);
-    if (exist) {
-      log.debug(photo.title + " already imported");
+    log.debug("exist ? " + (exist != null));
+    if (exist != null) {
+      log.debug(album.title + " already imported");
       return callback(null, exist);
     } else {
       return Album.create(album, callback);

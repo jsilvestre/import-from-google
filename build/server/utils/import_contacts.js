@@ -56,16 +56,25 @@ addContactToCozy = function(gContact, cozyContacts, callback) {
       }
     }
     endCb = function(err, updatedContact) {
-      log.debug("updated " + name + " err=" + err);
-      if (err) {
+      if (err != null) {
+        log.error("An error occured while creating or updating the " + "contact.");
+        log.raw(err);
         return callback(err);
       }
-      numberProcessed += 1;
-      realtimer.sendContacts({
-        number: numberProcessed,
-        total: total
+      log.debug("updated " + name);
+      return addContactPicture(updatedContact, gContact, function(err) {
+        if (err) {
+          log.debug("picture err " + err);
+        }
+        return setTimeout(function() {
+          numberProcessed += 1;
+          realtimer.sendContacts({
+            number: numberProcessed,
+            total: total
+          });
+          return callback(null);
+        }, 10);
       });
-      return callback(null, updatedContact);
     };
     if (fromCozy != null) {
       log.debug("merging " + name);
@@ -83,12 +92,13 @@ addContactToCozy = function(gContact, cozyContacts, callback) {
 PICTUREREL = "http://schemas.google.com/contacts/2008/rel#photo";
 
 addContactPicture = function(cozyContact, gContact, done) {
-  var opts, pictureLink, pictureUrl, ref;
+  var hasPicture, opts, pictureLink, pictureUrl, ref, ref1;
   pictureLink = gContact.link.filter(function(link) {
     return link.rel === PICTUREREL;
   });
   pictureUrl = (ref = pictureLink[0]) != null ? ref.href : void 0;
-  if (!pictureUrl) {
+  hasPicture = ((ref1 = pictureLink[0]) != null ? ref1['gd$etag'] : void 0) != null;
+  if (!(pictureUrl && hasPicture)) {
     return done(null);
   }
   opts = url.parse(pictureUrl);
@@ -168,47 +178,30 @@ module.exports = function(token, callback) {
     google: listContacts,
     cozy: Contact.all
   }, function(err, contacts) {
-    var ref, ref1, updatedContacts;
+    var ref, ref1;
     log.debug("got " + (contacts != null ? (ref = contacts.google) != null ? ref.length : void 0 : void 0) + " contacts");
     if (err) {
       return callback(err);
     }
     total = (ref1 = contacts.google) != null ? ref1.length : void 0;
-    updatedContacts = {};
     return async.eachSeries(contacts.google, function(gContact, cb) {
-      return addContactToCozy(gContact, contacts.cozy, function(err, updatedContact) {
-        updatedContacts[gContact.id.$t] = updatedContact;
-        return cb(err);
-      });
+      return addContactToCozy(gContact, contacts.cozy, cb);
     }, function(err) {
       if (err) {
         return callback(err);
       }
-      return async.eachSeries(contacts.google, function(gContact, cb) {
-        if (updatedContacts[gContact.id.$t] != null) {
-          return addContactPicture(updatedContacts[gContact.id.$t], gContact, function(err) {
-            log.debug("picture err " + err);
-            return setTimeout(cb, 10);
-          });
-        } else {
-          return cb();
+      _ = localizationManager.t;
+      notification.createOrUpdatePersistent("leave-google-contacts", {
+        app: 'import-from-google',
+        text: _('notif_import_contact', {
+          total: total
+        }),
+        resource: {
+          app: 'contacts',
+          url: 'contacts/'
         }
-      }, function(err) {
-        if (err) {
-          return callback(err);
-        }
-        notification.createOrUpdatePersistent("leave-google-contacts", {
-          app: 'import-from-google',
-          text: localizationManager.t('notif_import_contact', {
-            total: total
-          }),
-          resource: {
-            app: 'contacts',
-            url: 'contacts/'
-          }
-        });
-        return callback();
       });
+      return callback();
     });
   });
 };

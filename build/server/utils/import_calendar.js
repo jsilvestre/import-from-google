@@ -82,6 +82,9 @@ fetchCalendar = function(calendarId, callback) {
   };
   return async.doWhilst(function(next) {
     return fetchOnePage(calendarId, pageToken, function(err, result) {
+      if (err) {
+        return next(err);
+      }
       calendarEvents = calendarEvents.concat(result.items);
       pageToken = result.nextPageToken;
       return next(null);
@@ -144,9 +147,10 @@ module.exports = function(access_token, callback) {
           return callback(err);
         }
         log.info("create notification for events");
+        _ = localizationManager.t;
         notification.createOrUpdatePersistent("leave-google-calendar", {
           app: 'import-from-google',
-          text: localizationManager.t('notif_import_event', {
+          text: _('notif_import_event', {
             total: numberProcessed
           }),
           resource: {

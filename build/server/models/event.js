@@ -95,6 +95,9 @@ Event.createIfNotExist = function(cozyEvent, callback) {
     key: cozyEvent.start
   }, function(err, events) {
     var exist;
+    if (err != null) {
+      return callback(err);
+    }
     exist = _.find(events, function(event) {
       return event.end === cozyEvent.end && event.description === cozyEvent.description;
     });

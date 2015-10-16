@@ -2,7 +2,8 @@
 var _extend, _union, hasField;
 
 module.exports.isSamePerson = function(contact1, contact2) {
-  return contact1.fn === contact2.fn && contact1.datapoints.some(function(field) {
+  var similar;
+  similar = contact1.datapoints.some(function(field) {
     var ref;
     if ((ref = field.name) === 'tel' || ref === 'adr' || ref === 'email' || ref === 'chat') {
       return hasField(field, contact2);
@@ -10,6 +11,7 @@ module.exports.isSamePerson = function(contact1, contact2) {
       return false;
     }
   });
+  return contact1.fn === contact2.fn && similar;
 };
 
 hasField = function(field, contact, checkType) {
